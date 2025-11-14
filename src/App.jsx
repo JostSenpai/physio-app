@@ -85,6 +85,38 @@ const mockPhysioData = {
   ]
 };
 
+// --- Komponente: Logo (PhysioGuide) ---
+const LogoComponent = () => (
+    <div className="flex items-center justify-center md:justify-start">
+        {/* Shield Icon: Simplified inline SVG based on the uploaded logo's style */}
+        <div className="relative w-8 h-8 mr-2 flex-shrink-0">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
+                {/* Shield Background (split in two colors using gradient for smooth transition in a single path) */}
+                <path d="M12 2L4 5V11.5C4 17.02 7.8 21.72 12 23C16.2 21.72 20 17.02 20 11.5V5L12 2Z" fill="url(#logoGradient)" />
+                <defs>
+                    <linearGradient id="logoGradient" x1="4" y1="12.5" x2="20" y2="12.5" gradientUnits="userSpaceOnUse">
+                        <stop offset="50%" stopColor="#4F46E5"/> {/* Indigo (Blue - Therapeut) */}
+                        <stop offset="50%" stopColor="#10B981"/> {/* Emerald (Green - Patient) */}
+                    </linearGradient>
+                </defs>
+                {/* Running Figure (white) - Simplified geometric representation */}
+                <path d="M14 17.5L16 15.5L14 13.5L12 11.5L10 13.5L8 15.5L10 17.5L12 19.5L14 17.5Z" fill="white" />
+                <circle cx="12" cy="7" r="2" fill="white" />
+            </svg>
+        </div>
+
+        {/* Text Section (mimics logo text styling) */}
+        <div className="hidden md:block leading-none">
+            <h1 className="text-xl font-extrabold">
+                <span className="text-indigo-400">Physio</span><span className="text-emerald-400">Guide</span>
+            </h1>
+            <p className="text-xs font-medium text-gray-400 mt-0.5 tracking-wider">DEIN DIGITALER PHYSIO-COACH.</p>
+        </div>
+        {/* Fallback for collapsed view (only the SVG icon is visible) */}
+    </div>
+);
+
+
 // --- Komponente: Navigations-Button ---
 const NavButton = ({ icon: Icon, title, isActive, onClick, activeColorClass }) => (
   <button
@@ -801,9 +833,8 @@ const App = () => {
       <aside className="w-16 md:w-64 flex-shrink-0 bg-gray-800 p-4 border-r border-gray-700 shadow-2xl transition-all duration-300">
         <div className="flex flex-col h-full">
           {/* Logo/App Name */}
-          <div className="mb-8 flex items-center justify-center md:justify-start">
-            <Dumbbell className="w-8 h-8 text-emerald-500 mr-2" />
-            <h1 className="text-xl font-extrabold text-white hidden md:block">PhysioConnect</h1>
+          <div className="mb-8">
+            <LogoComponent />
           </div>
 
           {/* Navigation Links */}
