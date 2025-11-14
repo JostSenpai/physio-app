@@ -1,13 +1,11 @@
 import React, { useState } from 'react';
 import {
-  Home,
   Users,
   Calendar,
   Zap,
   Dumbbell,
   MessageSquare,
   Trophy,
-  Briefcase,
   Play,
   ClipboardList,
   User,
@@ -15,8 +13,46 @@ import {
   Bell,
   Monitor,
   CheckCircle,
-  Clock
+  Clock,
+  Search,
+  Plus,
+  Settings,
+  Edit,
+  Activity
 } from 'lucide-react';
+
+// --- FARBDEFINITIONEN ---
+const patientColors = {
+  bg: 'bg-emerald-900/40',
+  border: 'border-emerald-600',
+  icon: 'text-emerald-400',
+  primary: 'text-emerald-500',
+  button: 'bg-emerald-600 hover:bg-emerald-700',
+  text: 'text-emerald-400',
+  lightBg: 'bg-emerald-800/60'
+};
+
+const physioColors = {
+  bg: 'bg-indigo-900/40',
+  border: 'border-indigo-600',
+  icon: 'text-indigo-400',
+  primary: 'text-indigo-500',
+  button: 'bg-indigo-600 hover:bg-indigo-700',
+  text: 'text-indigo-400',
+  lightBg: 'bg-indigo-800/60'
+};
+
+const aiColors = {
+  bg: 'bg-gradient-to-br from-emerald-900 to-indigo-900',
+  border: 'border-emerald-500', // Cosmetic border
+  icon: 'text-white',
+  primary: 'text-white',
+  button: 'bg-white/10 hover:bg-white/20',
+  text: 'text-gray-200',
+  lightBg: 'bg-gray-700/50'
+};
+// --- ENDE FARBDEFINITIONEN ---
+
 
 // Mock data (Simulierte Daten)
 const mockPatientData = {
@@ -25,26 +61,36 @@ const mockPatientData = {
   progress: 75,
   reminders: ["Termin mit Therapeutin Müller um 14:00 Uhr"],
   recentAchievements: ["Level 5 erreicht", "30-Tage-Serie"],
+  plan: [
+    { day: 'Mo', exercises: ['Kniebeugen', 'Dehnung', 'Laufen'], status: 'completed' },
+    { day: 'Di', exercises: ['Rückenstrecker', 'Plank'], status: 'missed' },
+    { day: 'Mi', exercises: ['Ruhetag'], status: 'rest' },
+    { day: 'Do', exercises: ['Kniebeugen', 'Dehnung'], status: 'pending' },
+  ]
 };
 
 const mockPhysioData = {
   patients: [
-    { id: 1, name: "Max Mustermann", lastLogin: "2 Stunden her" },
-    { id: 2, name: "Anna Beispiel", lastLogin: "Gestern" },
-    { id: 3, name: "Tom Tester", lastLogin: "1 Woche her" },
+    { id: 1, name: "Max Mustermann", lastLogin: "2 Stunden her", status: "Gut", compliance: "85%" },
+    { id: 2, name: "Anna Beispiel", lastLogin: "Gestern", status: "Stabil", compliance: "60%" },
+    { id: 3, name: "Tom Tester", lastLogin: "1 Woche her", status: "Verbesserung", compliance: "95%" },
   ],
   aiSummaries: [
     { id: 1, patient: "Max Mustermann", summary: "Verbesserte Mobilität im linken Knie um 15% seit letzter Woche. Schmerz-Score stabil.", date: "1 Std. her" },
     { id: 2, patient: "Anna Beispiel", summary: "Muss an Rumpfstabilität arbeiten. Trainingsintensität heute niedrig.", date: "Gestern" },
   ],
+  exercises: [
+    { id: 1, name: "Kniebeugen", focus: "Beine, Rumpf", level: "Mittel" },
+    { id: 2, name: "Dehnung", focus: "Oberschenkel", level: "Leicht" },
+  ]
 };
 
 // --- Komponente: Navigations-Button ---
-const NavButton = ({ icon: Icon, title, isActive, onClick }) => (
+const NavButton = ({ icon: Icon, title, isActive, onClick, activeColorClass }) => (
   <button
     className={`flex items-center w-full p-3 my-1 rounded-xl transition-all duration-200 ${
       isActive
-        ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-700/50'
+        ? `text-white shadow-lg ${activeColorClass}`
         : 'text-gray-400 hover:bg-gray-700 hover:text-white'
     }`}
     onClick={onClick}
@@ -55,10 +101,10 @@ const NavButton = ({ icon: Icon, title, isActive, onClick }) => (
 );
 
 // --- Komponente: Dashboard-Karte ---
-const DashboardCard = ({ title, content, icon: Icon, colorClass = 'bg-gray-800' }) => (
-  <div className={`p-5 rounded-2xl shadow-xl ${colorClass} transition-shadow hover:shadow-2xl h-full`}>
+const DashboardCard = ({ title, content, icon: Icon, color }) => (
+  <div className={`p-5 rounded-2xl shadow-xl border ${color.bg.includes('gradient') ? color.bg : `${color.bg} border-l-4 ${color.border}`} transition-shadow hover:shadow-2xl h-full`}>
     <div className="flex items-center mb-3">
-      <Icon className="w-6 h-6 text-emerald-400 mr-3" />
+      <Icon className={`w-6 h-6 mr-3 ${color.icon}`} />
       <h3 className="text-lg font-semibold text-white">{title}</h3>
     </div>
     <div className="text-gray-300">
@@ -67,18 +113,18 @@ const DashboardCard = ({ title, content, icon: Icon, colorClass = 'bg-gray-800' 
   </div>
 );
 
-// --- Patient: Trainingsplan Visualisierung ---
-const TrainingPlanVisualization = () => (
+// --- Patient: Trainingsplan Visualisierung (Card) ---
+const TrainingPlanVisualization = ({ color }) => (
   <DashboardCard
     title="Trainingsplan Visualisierung"
     icon={Dumbbell}
-    colorClass="bg-gray-900 border border-emerald-700/50"
+    color={color}
     content={
       <>
-        <div className="text-sm font-light text-emerald-400 mb-1">Fortschritt diese Woche:</div>
+        <div className="text-sm font-light text-white mb-1">Fortschritt diese Woche:</div>
         <div className="w-full bg-gray-700 rounded-full h-3 mb-4">
           <div
-            className="bg-emerald-500 h-3 rounded-full transition-all duration-500"
+            className={`${color.button.split(' ')[0]} h-3 rounded-full transition-all duration-500`}
             style={{ width: `${mockPatientData.progress}%` }}
           ></div>
         </div>
@@ -92,28 +138,28 @@ const TrainingPlanVisualization = () => (
   />
 );
 
-// --- Patient: Video Player / Trainingsmodus ---
-const TrainingMode = () => {
+// --- Patient: Video Player / Trainingsmodus (Card) ---
+const TrainingMode = ({ color }) => {
   const [isPlaying, setIsPlaying] = useState(false);
   return (
     <DashboardCard
       title="Trainingsmodus / Videoplayer"
       icon={Play}
-      colorClass="bg-gray-800"
+      color={color}
       content={
         <div className="relative w-full aspect-video bg-black/70 rounded-xl flex items-center justify-center overflow-hidden">
-          <span className="absolute top-2 left-3 text-xs text-emerald-400 bg-black/50 p-1 rounded">Übung 1 von 5</span>
+          <span className="absolute top-2 left-3 text-xs text-white bg-black/50 p-1 rounded">Übung 1 von 5</span>
           <div className="text-center">
             <button
               onClick={() => setIsPlaying(!isPlaying)}
-              className="p-4 bg-emerald-500/80 hover:bg-emerald-500 rounded-full transition-all shadow-xl"
+              className={`p-4 ${color.button.split(' ')[0]}/80 hover:${color.button.split(' ')[0]} rounded-full transition-all shadow-xl`}
             >
               <Play className={`w-8 h-8 ${isPlaying ? 'opacity-0' : 'opacity-100'}`} fill="white" />
             </button>
             <p className="mt-2 text-sm text-gray-300">Klicken Sie, um die angeleitete Sitzung zu starten</p>
           </div>
-          <div className="absolute bottom-0 w-full h-2 bg-emerald-600/50">
-            <div className="bg-emerald-400 h-full" style={{ width: '40%' }}></div>
+          <div className={`absolute bottom-0 w-full h-2 ${color.button.split(' ')[0]}/50`}>
+            <div className={`${color.button.split(' ')[0]} h-full`} style={{ width: '40%' }}></div>
           </div>
         </div>
       }
@@ -121,12 +167,12 @@ const TrainingMode = () => {
   );
 };
 
-// --- Patient: KI Chat Widget ---
-const AIChatWidget = () => (
+// --- Patient: KI Chat Widget (Card) ---
+const AIChatWidget = ({ color }) => (
   <DashboardCard
     title="KI Chat (Fragen zur Übung)"
     icon={MessageSquare}
-    colorClass="bg-gray-900"
+    color={color}
     content={
       <>
         <div className="h-28 overflow-y-auto space-y-2 mb-3 p-2 bg-gray-700/50 rounded-lg text-sm">
@@ -134,7 +180,7 @@ const AIChatWidget = () => (
             <span className="inline-block bg-emerald-700 text-white p-2 rounded-lg rounded-br-none max-w-xs">Tut mein Rücken weh?</span>
           </div>
           <div className="text-left">
-            <span className="inline-block bg-gray-600 text-white p-2 rounded-lg rounded-tl-none max-w-xs">
+            <span className="inline-block bg-indigo-600 text-white p-2 rounded-lg rounded-tl-none max-w-xs">
               Bitte beschreiben Sie das Schmerzgefühl genauer...
             </span>
           </div>
@@ -145,7 +191,7 @@ const AIChatWidget = () => (
             placeholder="Ihre Nachricht..."
             className="w-full p-2 bg-gray-700 rounded-l-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"
           />
-          <button className="px-3 bg-emerald-600 rounded-r-lg hover:bg-emerald-700">
+          <button className="px-3 bg-gradient-to-r from-emerald-600 to-indigo-600 rounded-r-lg hover:opacity-90">
             <Zap className="w-5 h-5 text-white" />
           </button>
         </div>
@@ -154,16 +200,16 @@ const AIChatWidget = () => (
   />
 );
 
-// --- Patient: Kalender & Terminerinnerung ---
-const CalendarReminders = () => (
+// --- Patient: Kalender & Terminerinnerung (Card) ---
+const CalendarReminders = ({ color }) => (
   <DashboardCard
     title="Kalender & Terminerinnerung"
     icon={Calendar}
-    colorClass="bg-gray-800"
+    color={color}
     content={
       <>
         <div className="text-3xl font-extrabold text-white mb-1">Freitag, 31. Okt</div>
-        <p className="text-emerald-400 mb-4">Ihr Plan für heute: 5 Übungen</p>
+        <p className={`${color.text} mb-4`}>Ihr Plan für heute: 5 Übungen</p>
 
         <div className="space-y-2">
           {mockPatientData.reminders.map((reminder, index) => (
@@ -182,17 +228,17 @@ const CalendarReminders = () => (
   />
 );
 
-// --- Patient: Achievements & Skins (Gamification) ---
-const GamificationWidget = () => (
+// --- Patient: Achievements & Skins (Card) ---
+const GamificationWidget = ({ color }) => (
   <DashboardCard
     title="Erfolge & Skins"
     icon={Trophy}
-    colorClass="bg-gray-900"
+    color={color}
     content={
       <>
         <div className="flex justify-between items-center mb-3">
           <p className="text-white font-semibold">Aktuelle Abzeichen:</p>
-          <button className="text-sm text-emerald-400 hover:text-emerald-300">Skins wählen</button>
+          <button className={`text-sm ${color.text} hover:text-white`}>Skins wählen</button>
         </div>
         <div className="flex space-x-3 mb-4">
           <div className="w-10 h-10 bg-yellow-500 rounded-full flex items-center justify-center text-lg shadow-md">🏅</div>
@@ -213,66 +259,63 @@ const GamificationWidget = () => (
 const PatientDashboard = () => (
   <div className="p-4 sm:p-6 lg:p-8 space-y-6">
     <h2 className="text-3xl font-bold text-white mb-6">Willkommen zurück, {mockPatientData.name}!</h2>
-
-    {/* Erste Reihe: Visualisierung & Kalender */}
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <TrainingPlanVisualization />
-      <CalendarReminders />
+      <TrainingPlanVisualization color={patientColors} />
+      <CalendarReminders color={patientColors} />
     </div>
-
-    {/* Zweite Reihe: Training & KI */}
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <div className="lg:col-span-2">
-        <TrainingMode />
+        <TrainingMode color={patientColors} />
       </div>
-      <AIChatWidget />
+      <AIChatWidget color={aiColors} />
     </div>
-
-    {/* Dritte Reihe: Gamification */}
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <GamificationWidget />
-        <DashboardCard title="Rangliste (Top 10)" icon={Users} content={<p className="text-sm">Hier sehen Sie, wie Sie im Vergleich zu anderen in Ihrer Gruppe abschneiden. (Lade...)</p>} />
-        <DashboardCard title="Community Hub" icon={Monitor} content={<p className="text-sm">Aktuelle Beiträge, Tipps & Tricks und Diskussionsforen. (Lade...)</p>} />
+        <GamificationWidget color={patientColors} />
+        <DashboardCard title="Rangliste (Top 10)" icon={Users} color={patientColors} content={<p className="text-sm">Hier sehen Sie, wie Sie im Vergleich zu anderen in Ihrer Gruppe abschneiden.</p>} />
+        <DashboardCard title="Community Hub" icon={Monitor} color={patientColors} content={<p className="text-sm">Aktuelle Beiträge, Tipps & Tricks und Diskussionsforen.</p>} />
     </div>
   </div>
 );
 
-// --- Physio: KI Zusammenfassungen ---
-const AISummariesList = () => (
+// --- Physio: KI Zusammenfassungen (Card) ---
+const AISummariesList = ({ color }) => (
   <DashboardCard
     title="KI-Zusammenfassungen"
     icon={MessageSquare}
-    colorClass="bg-gray-800"
+    color={color}
     content={
       <div className="space-y-3 h-72 overflow-y-auto pr-2">
         {mockPhysioData.aiSummaries.map(s => (
           <div key={s.id} className="p-3 bg-gray-700 rounded-lg shadow">
             <div className="flex justify-between items-center text-xs mb-1">
-              <span className="font-semibold text-emerald-400">{s.patient}</span>
+              <span className="font-semibold text-white">{s.patient}</span>
               <span className="text-gray-400">{s.date}</span>
             </div>
             <p className="text-sm text-gray-300 line-clamp-2">{s.summary}</p>
           </div>
         ))}
+        <button className={`w-full p-2 rounded-xl text-sm font-semibold mt-4 ${aiColors.button} ${aiColors.text}`}>
+            Alle Berichte anzeigen
+        </button>
       </div>
     }
   />
 );
 
-// --- Physio: Übungen Zuweisen ---
-const ExerciseAssignment = () => {
+// --- Physio: Übungen Zuweisen (Card) ---
+const ExerciseAssignment = ({ color }) => {
     const [selectedPatient, setSelectedPatient] = useState(mockPhysioData.patients[0].id);
     return (
       <DashboardCard
         title="Übungen einfach zuweisen (Übungsverwaltung)"
         icon={ClipboardList}
-        colorClass="bg-gray-900 border border-emerald-700/50"
+        color={color}
         content={
           <div className="space-y-4">
             <select
               value={selectedPatient}
               onChange={(e) => setSelectedPatient(parseInt(e.target.value))}
-              className="w-full p-2 bg-gray-700 rounded-lg text-white focus:ring-emerald-500 focus:border-emerald-500"
+              className="w-full p-2 bg-gray-700 rounded-lg text-white focus:ring-indigo-500 focus:border-indigo-500"
             >
               {mockPhysioData.patients.map(p => (
                 <option key={p.id} value={p.id}>{p.name}</option>
@@ -280,9 +323,9 @@ const ExerciseAssignment = () => {
             </select>
             <textarea
               placeholder="Übungsdetails (z.B. '3x15, 3x pro Woche, 15 Grad Flexion')"
-              className="w-full p-3 bg-gray-700 rounded-lg text-white h-24 resize-none focus:ring-emerald-500 focus:border-emerald-500"
+              className="w-full p-3 bg-gray-700 rounded-lg text-white h-24 resize-none focus:ring-indigo-500 focus:border-indigo-500"
             ></textarea>
-            <button className="w-full p-3 bg-emerald-600 rounded-xl text-white font-bold hover:bg-emerald-700 transition-colors">
+            <button className={`w-full p-3 rounded-xl text-white font-bold transition-colors ${color.button}`}>
               Zuweisung speichern
             </button>
           </div>
@@ -295,25 +338,22 @@ const ExerciseAssignment = () => {
 const PhysioDashboard = () => (
     <div className="p-4 sm:p-6 lg:p-8 space-y-6">
         <h2 className="text-3xl font-bold text-white mb-6">Physio-Dashboard (Therapeut)</h2>
-
-        {/* Erste Reihe: Zuweisung & KI-Zusammenfassungen */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <ExerciseAssignment />
-            <AISummariesList />
+            <ExerciseAssignment color={physioColors} />
+            <AISummariesList color={aiColors} />
         </div>
-
-        {/* Zweite Reihe: Patientenübersicht */}
         <DashboardCard
           title="Patientenübersicht & Status"
           icon={Users}
-          colorClass="bg-gray-800"
+          color={physioColors}
           content={
             <div className="overflow-x-auto">
               <table className="min-w-full text-sm text-left text-gray-400">
-                <thead className="text-xs uppercase bg-gray-700/50 text-gray-300">
+                <thead className="text-xs uppercase bg-indigo-700/50 text-gray-300">
                   <tr>
                     <th scope="col" className="px-6 py-3">Patient</th>
-                    <th scope="col" className="px-6 py-3">Letzte Aktivität</th>
+                    <th scope="col" className="px-6 py-3">Compliance</th>
+                    <th scope="col" className="px-6 py-3">Status</th>
                     <th scope="col" className="px-6 py-3">Aktion</th>
                   </tr>
                 </thead>
@@ -323,10 +363,11 @@ const PhysioDashboard = () => (
                       <th scope="row" className="px-6 py-4 font-medium text-white whitespace-nowrap">
                         {p.name}
                       </th>
-                      <td className="px-6 py-4">{p.lastLogin}</td>
+                      <td className="px-6 py-4">{p.compliance}</td>
+                      <td className="px-6 py-4">{p.status}</td>
                       <td className="px-6 py-4">
-                        <button className="text-emerald-400 hover:text-emerald-300 text-xs font-semibold">
-                            Details / Plan bearbeiten
+                        <button className={`${physioColors.text} hover:text-white text-xs font-semibold flex items-center`}>
+                            <Edit className="w-3 h-3 mr-1" /> Plan bearbeiten
                         </button>
                       </td>
                     </tr>
@@ -339,28 +380,377 @@ const PhysioDashboard = () => (
     </div>
 );
 
+// --- DEDIZIERTE PATIENTEN-ANSICHTEN ---
 
-// --- Content: Generischer Feature-Platzhalter ---
-const FeaturePlaceholder = ({ title, icon: Icon, description }) => (
-    <div className="p-8 bg-gray-800 rounded-2xl shadow-2xl text-center">
-        <Icon className="w-16 h-16 text-emerald-500 mx-auto mb-4 p-2 bg-gray-900 rounded-full" />
-        <h2 className="text-2xl font-bold text-white mb-3">{title}</h2>
-        <p className="text-gray-400">{description}</p>
-        <div className="mt-6 p-4 bg-gray-700 rounded-xl text-sm text-gray-300">
-            {title} wird hier im Detail angezeigt.
+const PlanView = ({ color }) => (
+    <div className="p-4 sm:p-6 lg:p-8 space-y-6">
+        <h2 className="text-3xl font-bold text-white mb-6">Ihr detaillierter Trainingsplan</h2>
+        <DashboardCard
+          title="Wochenübersicht"
+          icon={Calendar}
+          color={color}
+          content={
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              {mockPatientData.plan.map((item, index) => (
+                <div key={index} className={`p-4 rounded-xl shadow-lg border ${item.status === 'completed' ? 'bg-emerald-700/50 border-emerald-500' : item.status === 'pending' ? 'bg-gray-700 border-gray-500' : 'bg-red-700/50 border-red-500'}`}>
+                  <p className="text-lg font-bold text-white mb-1">{item.day}</p>
+                  <ul className="text-sm space-y-1">
+                    {item.exercises.map((e, i) => <li key={i} className="text-gray-200">{e}</li>)}
+                  </ul>
+                  <span className="mt-2 block text-xs font-semibold uppercase">
+                    {item.status === 'completed' ? 'Abgeschlossen' : item.status === 'pending' ? 'Ausstehend' : 'Verpasst/Ruhetag'}
+                  </span>
+                </div>
+              ))}
+            </div>
+          }
+        />
+        <button className={`p-3 rounded-xl text-white font-bold transition-colors ${color.button}`}>
+            <Play className="w-5 h-5 mr-2 inline" /> Training für heute starten
+        </button>
+    </div>
+);
+
+const CalendarView = ({ color }) => (
+    <div className="p-4 sm:p-6 lg:p-8 space-y-6">
+        <h2 className="text-3xl font-bold text-white mb-6">Kalender & Termine</h2>
+        <DashboardCard
+          title="Monatsansicht"
+          icon={Calendar}
+          color={color}
+          content={
+            <div className="bg-gray-700 p-4 rounded-xl aspect-[4/3] text-center flex items-center justify-center">
+              <p className="text-gray-400">Hier würde ein interaktiver Kalender mit Terminen und Trainingssessions geladen.</p>
+            </div>
+          }
+        />
+        <DashboardCard
+          title="Terminerinnerungen"
+          icon={Bell}
+          color={color}
+          content={
+            <ul className="space-y-3">
+              <li className="p-3 bg-gray-700 rounded-xl flex justify-between items-center border-l-4 border-yellow-500">
+                <span>Physio-Termin mit Dr. Müller, 14:00 Uhr</span>
+                <span className="text-xs text-yellow-400">Heute</span>
+              </li>
+              <li className="p-3 bg-gray-700 rounded-xl flex justify-between items-center border-l-4 border-emerald-500">
+                <span>Trainingseinheit 'Beine & Rumpf'</span>
+                <span className="text-xs text-emerald-400">Morgen</span>
+              </li>
+            </ul>
+          }
+        />
+    </div>
+);
+
+const AIChatView = ({ color }) => (
+    <div className="p-4 sm:p-6 lg:p-8 space-y-6">
+        <h2 className="text-3xl font-bold text-white mb-6">KI Chat mit Ihrem persönlichen Physio-Assistenten</h2>
+        <DashboardCard
+          title="KI Konversation"
+          icon={MessageSquare}
+          color={color}
+          content={
+            <div className="flex flex-col h-[500px]">
+                <div className="flex-grow overflow-y-auto space-y-4 p-4">
+                    <div className="flex justify-start">
+                        <span className="inline-block bg-indigo-700 text-white p-3 rounded-xl rounded-tl-none max-w-xs shadow-lg">Willkommen Mia! Wie fühlen Sie sich heute?</span>
+                    </div>
+                    <div className="flex justify-end">
+                        <span className="inline-block bg-emerald-700 text-white p-3 rounded-xl rounded-br-none max-w-xs shadow-lg">Ich habe leichte Schmerzen im rechten Knie nach den Kniebeugen. Ist das normal?</span>
+                    </div>
+                </div>
+                <div className="flex mt-4">
+                  <input
+                    type="text"
+                    placeholder="Frage eingeben oder Symptome beschreiben..."
+                    className="flex-grow p-3 bg-gray-700 rounded-l-xl text-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                  />
+                  <button className={`px-5 rounded-r-xl text-white font-bold transition-colors bg-gradient-to-r from-emerald-600 to-indigo-600 hover:opacity-90`}>
+                    <Zap className="w-6 h-6" />
+                  </button>
+                </div>
+            </div>
+          }
+        />
+    </div>
+);
+
+const LeaderboardView = ({ color }) => (
+    <div className="p-4 sm:p-6 lg:p-8 space-y-6">
+        <h2 className="text-3xl font-bold text-white mb-6">Rangliste & Wettbewerb</h2>
+        <DashboardCard
+          title="Top 10 Physiokrieger"
+          icon={Trophy}
+          color={color}
+          content={
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-sm text-left text-gray-400">
+                <thead className="text-xs uppercase bg-emerald-700/50 text-gray-300">
+                  <tr>
+                    <th scope="col" className="px-6 py-3">Rang</th>
+                    <th scope="col" className="px-6 py-3">Name</th>
+                    <th scope="col" className="px-6 py-3">Punkte</th>
+                    <th scope="col" className="px-6 py-3">Abzeichen</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[
+                    { rank: 1, name: "Max Mustermann", points: 4500, badge: '🏅' },
+                    { rank: 2, name: mockPatientData.name, points: 3980, badge: '💪' },
+                    { rank: 3, name: "Lena Huber", points: 3100, badge: '✨' },
+                  ].map((p) => (
+                    <tr key={p.rank} className={`border-b border-gray-700 ${p.rank === 2 ? 'bg-emerald-800/50 text-white font-bold' : 'bg-gray-800 hover:bg-gray-700'}`}>
+                      <td className="px-6 py-4">{p.rank}</td>
+                      <td className="px-6 py-4">{p.name}</td>
+                      <td className="px-6 py-4">{p.points}</td>
+                      <td className="px-6 py-4 text-lg">{p.badge}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          }
+        />
+    </div>
+);
+
+const CommunityView = ({ color }) => (
+    <div className="p-4 sm:p-6 lg:p-8 space-y-6">
+        <h2 className="text-3xl font-bold text-white mb-6">Community Hub</h2>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 space-y-4">
+                <DashboardCard
+                    title="Neuer Beitrag erstellen"
+                    icon={Plus}
+                    color={color}
+                    content={
+                        <>
+                            <textarea placeholder="Was möchten Sie teilen?" className="w-full p-3 bg-gray-700 rounded-lg text-white h-16 resize-none focus:ring-emerald-500 focus:border-emerald-500 mb-2"></textarea>
+                            <button className={`p-2 rounded-xl text-white font-bold transition-colors ${color.button} text-sm`}>
+                                Beitrag posten
+                            </button>
+                        </>
+                    }
+                />
+                <DashboardCard
+                    title="Aktuelle Diskussionen"
+                    icon={Monitor}
+                    color={color}
+                    content={
+                        <ul className="space-y-3 text-sm">
+                            <li className="p-3 bg-gray-700 rounded-xl hover:bg-gray-600 transition-colors cursor-pointer">
+                                <p className="font-semibold text-white">Tipps zur Motivation beim Heimtraining</p>
+                                <p className="text-gray-400 text-xs">Von: User XYZ | 5 Kommentare</p>
+                            </li>
+                            <li className="p-3 bg-gray-700 rounded-xl hover:bg-gray-600 transition-colors cursor-pointer">
+                                <p className="font-semibold text-white">Welche Dehnübungen helfen bei Ischias?</p>
+                                <p className="text-gray-400 text-xs">Von: Therapeut Müller | 12 Kommentare</p>
+                            </li>
+                        </ul>
+                    }
+                />
+            </div>
+            <DashboardCard
+                title="Top-Poster"
+                icon={Trophy}
+                color={color}
+                content={
+                    <ul className="space-y-2 text-sm">
+                        <li>1. Peter S. (25 Beiträge)</li>
+                        <li>2. Dr. Schmidt (18 Beiträge)</li>
+                    </ul>
+                }
+            />
         </div>
+    </div>
+);
+
+const AchievementsView = ({ color }) => (
+    <div className="p-4 sm:p-6 lg:p-8 space-y-6">
+        <h2 className="text-3xl font-bold text-white mb-6">Erfolge, Abzeichen & Skins</h2>
+
+        {/* Skins Bereich */}
+        <DashboardCard
+            title="Profil-Skins"
+            icon={Settings}
+            color={color}
+            content={
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {['Klassisch (Aktiv)', 'Dunkel-Mode', 'Neon-Style', 'Holz-Optik'].map((skin, index) => (
+                        <div key={index} className={`p-4 rounded-xl text-center cursor-pointer ${index === 0 ? 'bg-emerald-700 border-2 border-white' : 'bg-gray-700 hover:bg-gray-600'}`}>
+                            <div className="text-3xl mb-2">🎨</div>
+                            <p className="text-sm font-semibold">{skin}</p>
+                        </div>
+                    ))}
+                </div>
+            }
+        />
+
+        {/* Achievements Bereich */}
+        <DashboardCard
+            title="Freigeschaltete Abzeichen"
+            icon={Trophy}
+            color={color}
+            content={
+                <div className="grid grid-cols-3 md:grid-cols-6 gap-4">
+                    {[{ symbol: '🏅', name: 'Level 5', active: true }, { symbol: '💪', name: '30 Tage Serie', active: true }, { symbol: '✨', name: 'Perfekte Woche', active: true }, { symbol: '🥇', name: 'Top 10', active: false }].map((badge, index) => (
+                        <div key={index} className={`p-4 rounded-xl text-center ${badge.active ? 'bg-yellow-500/20 border border-yellow-500' : 'bg-gray-700 opacity-50'}`}>
+                            <div className="text-4xl mb-2">{badge.symbol}</div>
+                            <p className="text-xs font-semibold">{badge.name}</p>
+                        </div>
+                    ))}
+                </div>
+            }
+        />
+    </div>
+);
+
+
+// --- DEDIZIERTE THERAPEUTEN-ANSICHTEN ---
+
+const ExerciseMgmtView = ({ color }) => (
+    <div className="p-4 sm:p-6 lg:p-8 space-y-6">
+        <h2 className="text-3xl font-bold text-white mb-6">Übungsverwaltung & Bibliothek</h2>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2">
+                <DashboardCard
+                    title="Neue Übung erstellen"
+                    icon={Plus}
+                    color={color}
+                    content={
+                        <form className="space-y-3">
+                            <input type="text" placeholder="Übungsname (z.B. Schulterrotation)" className="w-full p-2 bg-gray-700 rounded-lg text-white focus:ring-indigo-500 focus:border-indigo-500" />
+                            <textarea placeholder="Anweisungen und Details" className="w-full p-2 bg-gray-700 rounded-lg text-white h-20 resize-none focus:ring-indigo-500 focus:border-indigo-500"></textarea>
+                            <div className="grid grid-cols-2 gap-3">
+                                <select className="p-2 bg-gray-700 rounded-lg text-white focus:ring-indigo-500">
+                                    <option>Fokusbereich</option>
+                                </select>
+                                <select className="p-2 bg-gray-700 rounded-lg text-white focus:ring-indigo-500">
+                                    <option>Schwierigkeit</option>
+                                </select>
+                            </div>
+                            <button className={`w-full p-3 rounded-xl text-white font-bold transition-colors ${color.button}`}>
+                                Übung speichern
+                            </button>
+                        </form>
+                    }
+                />
+            </div>
+            <DashboardCard
+                title="Existierende Übungen"
+                icon={ClipboardList}
+                color={color}
+                content={
+                    <div className="space-y-2 h-72 overflow-y-auto">
+                        {mockPhysioData.exercises.map(e => (
+                            <div key={e.id} className="p-3 bg-gray-700 rounded-lg flex justify-between items-center">
+                                <div>
+                                    <p className="font-semibold text-white">{e.name}</p>
+                                    <p className="text-xs text-gray-400">{e.focus} ({e.level})</p>
+                                </div>
+                                <button className={`${color.text} hover:text-white text-sm`}>
+                                    <Edit className="w-4 h-4" />
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                }
+            />
+        </div>
+    </div>
+);
+
+const PatientMgmtView = ({ color }) => (
+    <div className="p-4 sm:p-6 lg:p-8 space-y-6">
+        <h2 className="text-3xl font-bold text-white mb-6">Patientenmanagement</h2>
+        <div className="flex mb-4 space-x-3">
+            <input type="text" placeholder="Patienten suchen..." className="flex-grow p-2 bg-gray-700 rounded-xl text-white focus:ring-indigo-500 focus:border-indigo-500" />
+            <button className={`p-2 rounded-xl text-white font-bold transition-colors ${color.button}`}>
+                <Search className="w-6 h-6" />
+            </button>
+            <button className={`p-2 rounded-xl text-white font-bold transition-colors ${color.button}`}>
+                <Plus className="w-6 h-6" />
+            </button>
+        </div>
+        <DashboardCard
+          title="Alle Patienten"
+          icon={Users}
+          color={color}
+          content={
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-sm text-left text-gray-400">
+                <thead className="text-xs uppercase bg-indigo-700/50 text-gray-300">
+                  <tr>
+                    <th scope="col" className="px-6 py-3">Patient</th>
+                    <th scope="col" className="px-6 py-3">Compliance</th>
+                    <th scope="col" className="px-6 py-3">Zuletzt aktiv</th>
+                    <th scope="col" className="px-6 py-3">Aktion</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {mockPhysioData.patients.map(p => (
+                    <tr key={p.id} className="bg-gray-800 border-b border-gray-700 hover:bg-gray-700">
+                      <th scope="row" className="px-6 py-4 font-medium text-white whitespace-nowrap">
+                        {p.name}
+                      </th>
+                      <td className="px-6 py-4">{p.compliance}</td>
+                      <td className="px-6 py-4">{p.lastLogin}</td>
+                      <td className="px-6 py-4">
+                        <button className={`${color.text} hover:text-white text-xs font-semibold flex items-center`}>
+                            <Activity className="w-3 h-3 mr-1" /> Plan bearbeiten
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          }
+        />
+    </div>
+);
+
+const AISummaryView = ({ color }) => (
+    <div className="p-4 sm:p-6 lg:p-8 space-y-6">
+        <h2 className="text-3xl font-bold text-white mb-6">Detaillierte KI-Zusammenfassungen</h2>
+        <div className="flex mb-4 space-x-3">
+            <input type="text" placeholder="Patienten oder Stichwort suchen..." className="flex-grow p-2 bg-gray-700 rounded-xl text-white focus:ring-indigo-500 focus:border-indigo-500" />
+            <button className={`p-2 rounded-xl text-white font-bold transition-colors ${aiColors.button}`}>
+                <Search className="w-6 h-6" />
+            </button>
+        </div>
+        <DashboardCard
+          title="Alle Berichte"
+          icon={MessageSquare}
+          color={color}
+          content={
+            <div className="space-y-4">
+              {mockPhysioData.aiSummaries.map(s => (
+                <div key={s.id} className="p-4 bg-gray-700 rounded-xl shadow-lg border-l-4 border-white/50">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="font-semibold text-lg text-white">{s.patient}</span>
+                    <span className="text-xs text-gray-400">{s.date}</span>
+                  </div>
+                  <p className="text-gray-300">{s.summary}</p>
+                  <button className="mt-3 text-sm text-white font-semibold bg-white/10 p-1.5 rounded-lg hover:bg-white/20 transition-colors">
+                      Voller Bericht anzeigen
+                  </button>
+                </div>
+              ))}
+            </div>
+          }
+        />
     </div>
 );
 
 
 // --- HAUPTKOMPONENTE: App ---
 const App = () => {
-  // state: 'patient' oder 'therapist'
   const [role, setRole] = useState('patient');
-  // state: Aktuelle Ansicht (wird durch die Sidebar gesetzt)
-  const [view, setView] = useState('dashboard'); // 'dashboard', 'plan', 'calendar', 'community', 'leaderboard', 'achievements'
+  const [view, setView] = useState('dashboard');
 
-  // Navigationslinks basierend auf der Rolle
   const patientNav = [
     { name: 'Übersicht', icon: LayoutDashboard, view: 'dashboard' },
     { name: 'Trainingsplan', icon: ClipboardList, view: 'plan' },
@@ -379,40 +769,27 @@ const App = () => {
   ];
 
   const currentNav = role === 'patient' ? patientNav : physioNav;
+  const activeColorClass = role === 'patient' ? 'bg-emerald-600 shadow-emerald-700/50' : 'bg-indigo-600 shadow-indigo-700/50';
 
-  // Render Content based on view and role
   const renderContent = () => {
     if (role === 'patient') {
       switch (view) {
-        case 'dashboard':
-          return <PatientDashboard />;
-        case 'plan':
-          return <FeaturePlaceholder title="Trainingsplan Visualisierung" icon={ClipboardList} description="Hier sehen Sie Ihren vollständigen, visualisierten Trainingsplan, detailliert nach Tagen und Übungen." />;
-        case 'calendar':
-          return <FeaturePlaceholder title="Kalender" icon={Calendar} description="Ihr persönlicher Kalender mit Trainingseinheiten, Terminerinnerungen und Meilensteinen." />;
-        case 'ai_chat':
-          return <FeaturePlaceholder title="AI Chat" icon={MessageSquare} description="Stellen Sie der KI Fragen zu Übungen, Schmerzen oder Ihrem Trainingsplan." />;
-        case 'leaderboard':
-            return <FeaturePlaceholder title="Rangliste" icon={Trophy} description="Verfolgen Sie Ihre Fortschritte und treten Sie in freundlichem Wettbewerb mit der Community an." />;
-        case 'community':
-            return <FeaturePlaceholder title="Community Hub" icon={Users} description="Ein Forum für Austausch, Motivation und Tipps mit anderen Nutzern und Experten." />;
-        case 'achievements':
-            return <FeaturePlaceholder title="Erfolge, Abzeichen & Skins" icon={Zap} description="Passen Sie Ihr Profil mit Skins an und schalten Sie Abzeichen durch das Erreichen von Zielen frei." />;
-        default:
-          return <PatientDashboard />;
+        case 'dashboard': return <PatientDashboard />;
+        case 'plan': return <PlanView color={patientColors} />;
+        case 'calendar': return <CalendarView color={patientColors} />;
+        case 'ai_chat': return <AIChatView color={aiColors} />;
+        case 'leaderboard': return <LeaderboardView color={patientColors} />;
+        case 'community': return <CommunityView color={patientColors} />;
+        case 'achievements': return <AchievementsView color={patientColors} />;
+        default: return <PatientDashboard />;
       }
     } else { // 'therapist'
       switch (view) {
-        case 'dashboard':
-          return <PhysioDashboard />;
-        case 'exercise_mgmt':
-          return <FeaturePlaceholder title="Übungsverwaltung" icon={ClipboardList} description="Erstellen, bearbeiten und organisieren Sie Übungen. Hier können Sie Übungen einfach den Patienten zuweisen." />;
-        case 'patient_mgmt':
-          return <FeaturePlaceholder title="Patientenmanagement" icon={Users} description="Verwalten Sie alle Ihre Patienten, deren Pläne und deren Fortschritte." />;
-        case 'ai_summary':
-          return <FeaturePlaceholder title="KI-Zusammenfassungen" icon={MessageSquare} description="Überblicken Sie auf KI-Basis die wichtigsten Fortschritte und Problembereiche Ihrer Patienten." />;
-        default:
-          return <PhysioDashboard />;
+        case 'dashboard': return <PhysioDashboard />;
+        case 'exercise_mgmt': return <ExerciseMgmtView color={physioColors} />;
+        case 'patient_mgmt': return <PatientMgmtView color={physioColors} />;
+        case 'ai_summary': return <AISummaryView color={aiColors} />;
+        default: return <PhysioDashboard />;
       }
     }
   };
@@ -438,6 +815,7 @@ const App = () => {
                 title={item.name}
                 isActive={view === item.view}
                 onClick={() => setView(item.view)}
+                activeColorClass={activeColorClass}
               />
             ))}
           </nav>
@@ -473,7 +851,7 @@ const App = () => {
               </button>
               <button
                 className={`py-2 px-4 rounded-full transition-colors font-medium ${
-                  role === 'therapist' ? 'bg-emerald-600 text-white shadow-md' : 'text-gray-300 hover:bg-gray-600'
+                  role === 'therapist' ? 'bg-indigo-600 text-white shadow-md' : 'text-gray-300 hover:bg-gray-600'
                 }`}
                 onClick={() => { setRole('therapist'); setView('dashboard'); }}
               >
